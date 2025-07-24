@@ -1,0 +1,20 @@
+# Compiled class files
+*.class
+
+# Maven output
+/target/
+
+# IntelliJ IDEA / Eclipse / VSCode
+.idea/
+*.iml
+*.classpath
+*.project
+.settings/
+.vscode/
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# JavaFX SDK
+javafx-sdk*/
