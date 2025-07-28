@@ -5,6 +5,7 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.stage.DirectoryChooser;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,6 +17,11 @@ public class DownloadView extends VBox {
     private Button downloadButton;
     private ProgressBar progressBar;
     private TextArea logArea;
+    private TextField fileNameField;
+    private Button folderButton;
+    private Label folderLabel;
+    private File selectedFolder;
+
 
     public DownloadView() {
         initUI();
@@ -31,6 +37,14 @@ public class DownloadView extends VBox {
         urlField = new TextField();
         urlField.setPromptText("Inserisci URL del file da scaricare");
 
+        fileNameField = new TextField();
+        fileNameField.setPromptText("Nome file (opzionale)");
+
+        folderButton = new Button("Scegli cartella...");
+        folderLabel = new Label("Nessuna cartella selezionata");
+        folderButton.setOnAction(e -> chooseFolder());
+
+        
         downloadButton = new Button("Scarica");
         downloadButton.setOnAction(e -> startDownload());
 
@@ -41,7 +55,18 @@ public class DownloadView extends VBox {
         logArea.setEditable(false);
         logArea.setPrefHeight(200);
 
-        getChildren().addAll(titleLabel, urlField, downloadButton, progressBar, new Label("Log:"), logArea);
+        getChildren().addAll(
+        	    titleLabel,
+        	    urlField,
+        	    fileNameField,
+        	    folderButton,
+        	    folderLabel,
+        	    downloadButton,
+        	    progressBar,
+        	    new Label("Log:"),
+        	    logArea
+        	);
+
     }
 
     private void startDownload() {
@@ -54,42 +79,59 @@ public class DownloadView extends VBox {
         try {
             URL url = new URL(fileURL);
 
-            String path = url.getPath();
-            String fileName = path.substring(path.lastIndexOf('/') + 1);
+            String fileNameInput = fileNameField.getText().trim();
+            String outputFileName;
 
-            if (fileName.isEmpty()) {
-                fileName = "multithread_downloader_tmgdw";
+            if (!fileNameInput.isEmpty()) {
+                outputFileName = fileNameInput;
+                if (!outputFileName.contains(".")) {
+                    String path = url.getPath();
+                    if (path.contains(".")) {
+                        outputFileName += path.substring(path.lastIndexOf("."));
+                    }
+                }
             } else {
-                int queryIdx = fileName.indexOf('?');
-                if (queryIdx != -1) {
-                    fileName = fileName.substring(0, queryIdx);
+                String path = url.getPath();
+                String fileName = path.substring(path.lastIndexOf('/') + 1);
+
+                if (fileName.isEmpty()) {
+                    fileName = "multithread_downloader_tmgdw";
+                } else {
+                    int queryIdx = fileName.indexOf('?');
+                    if (queryIdx != -1) {
+                        fileName = fileName.substring(0, queryIdx);
+                    }
+
+                    int dotIdx = fileName.lastIndexOf('.');
+                    if (dotIdx != -1) {
+                        String base = fileName.substring(0, dotIdx);
+                        String ext = fileName.substring(dotIdx);
+                        fileName = base + "_tmgdw" + ext;
+                    } else {
+                        fileName = fileName + "_tmgdw";
+                    }
                 }
 
-                int dotIdx = fileName.lastIndexOf('.');
-                if (dotIdx != -1) {
-                    String base = fileName.substring(0, dotIdx);
-                    String ext = fileName.substring(dotIdx);
-                    fileName = base + "_tmgdw" + ext;
-                } else {
-                    fileName = fileName + "_tmgdw";
-                }
+                outputFileName = fileName;
             }
 
-            File outputFile = new File(fileName);
+            File targetDir = (selectedFolder != null) ? selectedFolder : new File(".");
+            File outputFile = new File(targetDir, outputFileName);
+
             int count = 1;
             while (outputFile.exists()) {
-                int dotIndex = fileName.lastIndexOf('.');
-                if (dotIndex != -1) {
-                    String base = fileName.substring(0, dotIndex);
-                    String ext = fileName.substring(dotIndex);
-                    outputFile = new File(base + "(" + count + ")" + ext);
-                } else {
-                    outputFile = new File(fileName + "(" + count + ")");
+                String baseName = outputFileName;
+                String ext = "";
+                int dotIdx = outputFileName.lastIndexOf('.');
+                if (dotIdx != -1) {
+                    baseName = outputFileName.substring(0, dotIdx);
+                    ext = outputFileName.substring(dotIdx);
                 }
+                outputFile = new File(targetDir, baseName + "(" + count + ")" + ext);
                 count++;
             }
 
-            String output = outputFile.getName();
+            String output = outputFile.getAbsolutePath();
 
             int threads = 4;
 
@@ -118,6 +160,17 @@ public class DownloadView extends VBox {
             showMessage("URL non valido: " + e.getMessage());
         }
     }
+    
+    private void chooseFolder() {
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle("Scegli una cartella di destinazione");
+        File folder = chooser.showDialog(getScene().getWindow());
+        if (folder != null) {
+            selectedFolder = folder;
+            folderLabel.setText("📁 " + folder.getAbsolutePath());
+        }
+    }
+
 
     private void showMessage(String msg) {
         logArea.appendText(msg + "\n");
