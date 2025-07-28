@@ -1,27 +1,25 @@
 package io.manuel.multithreaddownloader.ui;
 
-import io.manuel.multithreaddownloader.core.Downloader;
-import javafx.application.Platform;
+import io.manuel.multithreaddownloader.controller.DownloadManager;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URL;
 
 public class DownloadView extends VBox {
 
     private TextField urlField;
-    private Button downloadButton;
-    private ProgressBar progressBar;
-    private TextArea logArea;
     private TextField fileNameField;
     private Button folderButton;
     private Label folderLabel;
+    private Button downloadButton;
+    private ProgressBar progressBar;
+    private TextArea logArea;
+    private VBox threadProgressContainer;
+    private ProgressBar[] threadBars;
     private File selectedFolder;
-
 
     public DownloadView() {
         initUI();
@@ -44,7 +42,6 @@ public class DownloadView extends VBox {
         folderLabel = new Label("Nessuna cartella selezionata");
         folderButton.setOnAction(e -> chooseFolder());
 
-        
         downloadButton = new Button("Scarica");
         downloadButton.setOnAction(e -> startDownload());
 
@@ -53,114 +50,89 @@ public class DownloadView extends VBox {
 
         logArea = new TextArea();
         logArea.setEditable(false);
-        logArea.setPrefHeight(200);
+        logArea.setMaxHeight(100);
+        logArea.setPrefRowCount(3);
+
+        threadProgressContainer = new VBox(5);
+        threadProgressContainer.setPadding(new Insets(10));
+
+        ScrollPane scrollPane = new ScrollPane(threadProgressContainer);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPrefHeight(200);
 
         getChildren().addAll(
-        	    titleLabel,
-        	    urlField,
-        	    fileNameField,
-        	    folderButton,
-        	    folderLabel,
-        	    downloadButton,
-        	    progressBar,
-        	    new Label("Log:"),
-        	    logArea
-        	);
-
+            titleLabel,
+            urlField,
+            fileNameField,
+            folderButton,
+            folderLabel,
+            downloadButton,
+            progressBar,
+            new Label("Log:"),
+            logArea,
+            scrollPane
+        );
     }
 
     private void startDownload() {
         String fileURL = urlField.getText().trim();
+        String fileName = fileNameField.getText().trim();
+
         if (fileURL.isEmpty()) {
             showMessage("Inserisci un URL valido.");
             return;
         }
 
-        try {
-            URL url = new URL(fileURL);
+        int threads = 4;
+        threadBars = new ProgressBar[threads];
+        threadProgressContainer.getChildren().clear();
 
-            String fileNameInput = fileNameField.getText().trim();
-            String outputFileName;
-
-            if (!fileNameInput.isEmpty()) {
-                outputFileName = fileNameInput;
-                if (!outputFileName.contains(".")) {
-                    String path = url.getPath();
-                    if (path.contains(".")) {
-                        outputFileName += path.substring(path.lastIndexOf("."));
-                    }
-                }
-            } else {
-                String path = url.getPath();
-                String fileName = path.substring(path.lastIndexOf('/') + 1);
-
-                if (fileName.isEmpty()) {
-                    fileName = "multithread_downloader_tmgdw";
-                } else {
-                    int queryIdx = fileName.indexOf('?');
-                    if (queryIdx != -1) {
-                        fileName = fileName.substring(0, queryIdx);
-                    }
-
-                    int dotIdx = fileName.lastIndexOf('.');
-                    if (dotIdx != -1) {
-                        String base = fileName.substring(0, dotIdx);
-                        String ext = fileName.substring(dotIdx);
-                        fileName = base + "_tmgdw" + ext;
-                    } else {
-                        fileName = fileName + "_tmgdw";
-                    }
-                }
-
-                outputFileName = fileName;
-            }
-
-            File targetDir = (selectedFolder != null) ? selectedFolder : new File(".");
-            File outputFile = new File(targetDir, outputFileName);
-
-            int count = 1;
-            while (outputFile.exists()) {
-                String baseName = outputFileName;
-                String ext = "";
-                int dotIdx = outputFileName.lastIndexOf('.');
-                if (dotIdx != -1) {
-                    baseName = outputFileName.substring(0, dotIdx);
-                    ext = outputFileName.substring(dotIdx);
-                }
-                outputFile = new File(targetDir, baseName + "(" + count + ")" + ext);
-                count++;
-            }
-
-            String output = outputFile.getAbsolutePath();
-
-            int threads = 4;
-
-            downloadButton.setDisable(true);
-            logArea.clear();
-            showMessage("Avvio download: " + output);
-
-            new Thread(() -> {
-                try {
-                    Downloader downloader = new Downloader(fileURL, output, threads);
-                    downloader.start();
-                    Platform.runLater(() -> {
-                        progressBar.setProgress(1.0);
-                        showMessage("Download completato!");
-                        downloadButton.setDisable(false);
-                    });
-                } catch (IOException e) {
-                    Platform.runLater(() -> {
-                        showMessage("Errore: " + e.getMessage());
-                        downloadButton.setDisable(false);
-                    });
-                }
-            }).start();
-
-        } catch (Exception e) {
-            showMessage("URL non valido: " + e.getMessage());
+        for (int i = 0; i < threads; i++) {
+            ProgressBar bar = new ProgressBar(0);
+            bar.setPrefWidth(400);
+            threadBars[i] = bar;
+            threadProgressContainer.getChildren().add(new Label("Thread " + i));
+            threadProgressContainer.getChildren().add(bar);
         }
+
+        downloadButton.setDisable(true);
+        logArea.clear();
+
+        DownloadManager manager = new DownloadManager();
+        manager.startDownload(
+            fileURL,
+            fileName,
+            selectedFolder,
+            threads,
+            new DownloadManager.Callback() {
+                @Override
+                public void onLog(String message) {
+                    showMessage(message);
+                }
+
+                @Override
+                public void onProgress(int threadId, double percent, double average) {
+                    if (threadId >= 0 && threadId < threadBars.length) {
+                        threadBars[threadId].setProgress(percent);
+                    }
+                    progressBar.setProgress(average);
+                }
+
+                @Override
+                public void onComplete() {
+                    showMessage("✅ Download completato!");
+                    downloadButton.setDisable(false);
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    showMessage("❌ Errore: " + errorMessage);
+                    downloadButton.setDisable(false);
+                }
+            }
+        );
     }
-    
+
     private void chooseFolder() {
         DirectoryChooser chooser = new DirectoryChooser();
         chooser.setTitle("Scegli una cartella di destinazione");
@@ -170,7 +142,6 @@ public class DownloadView extends VBox {
             folderLabel.setText("📁 " + folder.getAbsolutePath());
         }
     }
-
 
     private void showMessage(String msg) {
         logArea.appendText(msg + "\n");

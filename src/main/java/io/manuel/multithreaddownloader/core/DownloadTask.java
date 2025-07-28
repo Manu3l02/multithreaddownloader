@@ -13,13 +13,20 @@ public class DownloadTask implements Runnable {
     private final int startByte;
     private final int endByte;
     private final int threadId;
+    private final ProgressListener listener;
 
-    public DownloadTask(String fileURL, String outputFile, int startByte, int endByte, int threadId) {
+    public DownloadTask(String fileURL, 
+    					String outputFile, 
+    					int startByte, 
+    					int endByte, 
+    					int threadId,
+    					ProgressListener listener) {
         this.fileURL = fileURL;
         this.outputFile = outputFile;
         this.startByte = startByte;
         this.endByte = endByte;
         this.threadId = threadId;
+        this.listener = listener;
     }
 
     @Override
@@ -37,17 +44,12 @@ public class DownloadTask implements Runnable {
             int bytesRead;
             long totalRead = 0;
             long segmentSize = endByte - startByte + 1;
-            int lastPercent = 0;
 
             while ((bytesRead = in.read(buffer)) != -1) {
                 raf.write(buffer, 0, bytesRead);
                 totalRead += bytesRead;
-
-                int percent = (int)((totalRead * 100) / segmentSize);
-                if (percent >= lastPercent + 10) {
-                    System.out.println("🧵 Thread " + threadId + " → " + percent + "%");
-                    lastPercent = percent;
-                }
+                double percent = (totalRead * 1.0 / segmentSize);
+                listener.onProgress(threadId, percent);
             }
 
             raf.close();
