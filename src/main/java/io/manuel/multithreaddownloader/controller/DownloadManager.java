@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.net.URL;
 
 public class DownloadManager {
-
+	
     public interface Callback {
         void onLog(String message);
         void onProgress(int threadId, double percent, double average);
@@ -29,20 +29,23 @@ public class DownloadManager {
             callback.onLog("Avvio download: " + output);
 
             double[] progresses = new double[threads];
+            
+            double[] lastNotified = new double[threads];
 
             Downloader downloader = new Downloader(fileURL, output, threads, new ProgressListener() {
-                @Override
-                public void onProgress(int threadId, double percent) {
-                    progresses[threadId] = percent;
+            	@Override
+            	public void onProgress(int threadId, double percent) {
+            	    if (Math.abs(percent - lastNotified[threadId]) < 0.01) return; // ignora aggiornamenti < 1%
+            	    lastNotified[threadId] = percent;
 
-                    double total = 0;
-                    for (double p : progresses) {
-                        total += p;
-                    }
-                    double average = total / threads;
+            	    progresses[threadId] = percent;
 
-                    Platform.runLater(() -> callback.onProgress(threadId, percent, average));
-                }
+            	    double total = 0;
+            	    for (double p : progresses) total += p;
+            	    double average = total / threads;
+
+            	    Platform.runLater(() -> callback.onProgress(threadId, percent, average));
+            	}
             });
 
             new Thread(() -> {
