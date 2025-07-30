@@ -17,7 +17,13 @@ public class DownloadManager {
         void onError(String errorMessage);
     }
 
-    public void startDownload(String fileURL, String manualName, File folder, int threads, Callback callback) {
+    public void startDownload(
+    		String fileURL, 
+    		String manualName, 
+    		File folder, 
+    		int threads,
+    		DownloadControl control,
+    		Callback callback) {
         try {
             URL url = new URL(fileURL);
 
@@ -32,7 +38,7 @@ public class DownloadManager {
             
             double[] lastNotified = new double[threads];
 
-            Downloader downloader = new Downloader(fileURL, output, threads, new ProgressListener() {
+            Downloader downloader = new Downloader(fileURL, output, threads, control, new ProgressListener() {
             	@Override
             	public void onProgress(int threadId, double percent) {
             	    if (Math.abs(percent - lastNotified[threadId]) < 0.01) return; // ignora aggiornamenti < 1%
@@ -51,6 +57,12 @@ public class DownloadManager {
             new Thread(() -> {
                 try {
                     downloader.start();
+                    if (control.isCancelled()) {
+                    	Platform.runLater(() -> {
+                    		callback.onLog("⚠️ Download annullato dall'utente. File eliminato.");
+                    	});
+                    	return;
+                    }
                     Platform.runLater(callback::onComplete);
                 } catch (IOException e) {
                     Platform.runLater(() -> callback.onError(e.getMessage()));

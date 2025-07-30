@@ -1,5 +1,6 @@
 package io.manuel.multithreaddownloader.ui;
 
+import io.manuel.multithreaddownloader.controller.DownloadControl;
 import io.manuel.multithreaddownloader.controller.DownloadManager;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -24,6 +25,10 @@ public class DownloadView extends VBox {
     private File selectedFolder;
     private Spinner<Integer> threadSpinner;
     private ScrollPane threadScrollPane;
+    private Button pauseButton;
+    private Button resumeButton;
+    private Button cancelButton;
+    private DownloadControl control;
 
     public DownloadView() {
         initUI();
@@ -81,14 +86,55 @@ public class DownloadView extends VBox {
         GridPane.setColumnSpan(folderSelectionBox, 2);
         formGrid.add(folderSelectionBox, 0, 4);
 
-        // Download Button
+        // Buttons
         downloadButton = new Button("Scarica");
         downloadButton.setOnAction(e -> startDownload());
         
         GridPane.setColumnSpan(downloadButton, 2);
         GridPane.setHalignment(downloadButton, HPos.LEFT);
         formGrid.add(downloadButton, 0, 5);
-
+        
+        pauseButton = new Button("⏸️ Pausa");
+        resumeButton = new Button("▶️ Riprendi");
+        cancelButton = new Button("⏹️ Annulla");
+        
+        pauseButton.setDisable(true);
+        resumeButton.setDisable(true);
+        cancelButton.setDisable(true);
+        
+        pauseButton.setOnAction(e -> {
+        	if (control != null) {
+        		control.pause();
+        		showMessage("⏸️ Download in pausa.");
+        		pauseButton.setDisable(true);
+        		resumeButton.setDisable(false);
+        	}
+        });
+        
+        resumeButton.setOnAction(e -> {
+        	if (control != null) {
+        		control.resume();
+        		showMessage("▶️ Download ripreso.");
+        		pauseButton.setDisable(false);
+        		resumeButton.setDisable(true);
+        	}
+        });
+        
+        cancelButton.setOnAction(e -> {
+        	if (control != null) {
+        		control.cancel();
+        		showMessage("⏹️ Download in fase di annullamento...");
+        		pauseButton.setDisable(true);
+        		resumeButton.setDisable(true);
+        		cancelButton.setDisable(true);
+        		downloadButton.setDisable(false);
+        	}
+        });
+        
+        HBox controlButtons = new HBox(10, downloadButton, pauseButton, resumeButton, cancelButton);
+        GridPane.setColumnSpan(controlButtons, 2);
+        GridPane.setHalignment(controlButtons, HPos.LEFT);
+        formGrid.add(controlButtons, 0, 5);
 
         // ---------- Sezione Centrale: Thread Progress Bars ScrollPane ----------
         Label threadProgressTitle = new Label("Progresso per thread:");
@@ -164,12 +210,18 @@ public class DownloadView extends VBox {
         downloadButton.setDisable(true);
         logArea.clear();
 
+        control = new DownloadControl();
+        pauseButton.setDisable(false);
+        resumeButton.setDisable(true);
+        cancelButton.setDisable(false);
+        
         DownloadManager manager = new DownloadManager();
         manager.startDownload(
                 fileURL,
                 fileName,
                 selectedFolder,
                 threads,
+                control,
                 new DownloadManager.Callback() {
                     @Override
                     public void onLog(String message) {
@@ -188,12 +240,18 @@ public class DownloadView extends VBox {
                     public void onComplete() {
                         showMessage("✅ Download completato!");
                         downloadButton.setDisable(false);
+                        pauseButton.setDisable(true);
+                        resumeButton.setDisable(true);
+                        cancelButton.setDisable(true);
                     }
 
                     @Override
                     public void onError(String errorMessage) {
                         showMessage("❌ Errore: " + errorMessage);
                         downloadButton.setDisable(false);
+                        pauseButton.setDisable(true);
+                        resumeButton.setDisable(true);
+                        cancelButton.setDisable(true);
                     }
                 }
         );

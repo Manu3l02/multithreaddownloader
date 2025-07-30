@@ -7,12 +7,17 @@ Ogni thread scarica una parte del file in parallelo, migliorando le prestazioni 
 
 ## 🚀 Funzionalità
 
-- 📥 Scaricamento file via HTTP usando più thread (divisione per byte range)
-- 🧪 Barra di avanzamento del download globale nella GUI
-- 🔎 Verifica se il file è già presente per evitare sovrascrittura
-- 🖥️ Interfaccia semplice creata con JavaFX
-- 📄 Log chiaro del progresso di ogni thread
-- 💡 Struttura modulare con separazione tra core e UI
+- 📥 Scaricamento file via HTTP usando più thread (con `Range` per byte)
+- 📊 Visualizzazione del progresso per ogni thread con barre dedicate
+- 📶 Barra di avanzamento totale del download
+- ⏸️ Possibilità di **mettere in pausa** e **riprendere** il download
+- ⏹️ Possibilità di **annullare** il download in qualsiasi momento (con rimozione del file incompleto)
+- 🧠 Scelta del numero di thread dalla GUI (da 1 a 16)
+- 📂 Selezione della cartella di destinazione
+- 🚫 Evita la sovrascrittura se il file esiste già (aggiunge suffisso)
+- 🖥️ Interfaccia grafica moderna con JavaFX
+- 📄 Log chiaro di ogni evento e progresso
+- 💡 Architettura modulare: separazione netta tra logica di download, UI e controller
 
 ---
 
@@ -22,7 +27,7 @@ Ogni thread scarica una parte del file in parallelo, migliorando le prestazioni 
 - **JavaFX 21**
 - **Maven** per la gestione delle dipendenze
 - **JUnit 5** per i test (base)
-- **Git** per il controllo di versione
+- **Git** per il versionamento
 
 ---
 
@@ -36,7 +41,11 @@ src/
 │           ├── MainApp.java
 │           ├── core/
 │           │   ├── Downloader.java
-│           │   └── DownloadTask.java
+│           │   ├── DownloadTask.java
+│           │   └── ProgressListener.java
+│           ├── controller/
+│           │   ├── DownloadManager.java
+│           │   └── DownloadControl.java
 │           └── ui/
 │               └── DownloadView.java
 └── test/
@@ -52,35 +61,40 @@ src/
 
 - Java 17 installato
 - Maven installato
-- JavaFX SDK scaricato (oppure usato via Maven)
+- JavaFX SDK disponibile (incluso via Maven o configurato manualmente)
 
-### 🧪 Avviare l'applicazione:
+### 🧪 Avvio da terminale:
 
 ```bash
 mvn clean compile
 mvn javafx:run
-```
+````
 
-oppure da IDE (Eclipse/IntelliJ): avvia MainApp.java
+Oppure da IDE (es. Eclipse/IntelliJ): esegui `MainApp.java`.
+
+---
 
 ## 🔭 Estensioni future (TODO)
 
-- Visualizzazione del progresso per ogni thread nella GUI
+* [x] Visualizzazione del progresso per ogni thread
+* [x] Selettore del numero di thread
+* [x] Selezione cartella di destinazione
+* [x] Pausa / Ripresa del download
+* [x] Annullamento e cancellazione file incompleto
+* [ ] Supporto a HTTPS con autenticazione (token/cookie)
+* [ ] Cronologia dei download effettuati
+* [ ] Supporto a resume da file parziali dopo riavvio
 
-- Selettore del numero di thread nella GUI
-
-- Selezione della cartella di salvataggio
-
-- Pausa / Ripresa del download
-
-- Supporto per download HTTPS con autenticazione (token, cookie)
+---
 
 ## 🪪 Licenza
 
 Questo progetto è open source e distribuito con licenza [MIT](LICENSE).
 
+---
+
 ## ✍️ Autore
 
-Manuel
+**Manuel**
 
-- 🔗 github.com/Manu3l02
+* 🔗 [github.com/Manu3l02](https://github.com/Manu3l02)

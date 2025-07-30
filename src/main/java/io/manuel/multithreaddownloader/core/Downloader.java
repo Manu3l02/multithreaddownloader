@@ -6,18 +6,27 @@ import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import io.manuel.multithreaddownloader.controller.DownloadControl;
+
 public class Downloader {
 
 	private final String fileURL;
 	private final String outputFile;
 	private final int numThreads;
 	private final ProgressListener listener;
+	private final DownloadControl control;
 
-	public Downloader(String fileURL, String outputFile, int numThreads, ProgressListener listener) {
+	public Downloader(
+			String fileURL, 
+			String outputFile, 
+			int numThreads, 
+			DownloadControl control,
+			ProgressListener listener) {
 		this.fileURL = fileURL;
 		this.outputFile = outputFile;
 		this.numThreads = numThreads;
 		this.listener = listener;
+		this.control = control;
 	}
 
 	public void start() throws IOException {
@@ -54,7 +63,7 @@ public class Downloader {
 			int start = i * partSize;
 			int end = (i == numThreads - 1) ? contentLength - 1 : start + partSize - 1;
 
-			threads[i] = new Thread(new DownloadTask(fileURL, outputFile, start, end, i, listener));
+			threads[i] = new Thread(new DownloadTask(fileURL, outputFile, start, end, i, listener, control));
 			threads[i].start();
 		}
 
@@ -65,6 +74,14 @@ public class Downloader {
 			} catch (InterruptedException e) {
 				System.out.println("⚠️ Download interrotto: " + e.getMessage());
 			}
+		}
+		
+		if (control.isCancelled()) {
+			File fileToDelete = new File(outputFile);
+			if (fileToDelete.exists()) {
+				fileToDelete.delete();
+			}
+			return;
 		}
 
 		System.out.println("🎉 Download completato: " + outputFile);
