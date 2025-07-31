@@ -6,6 +6,7 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
 
@@ -52,10 +53,13 @@ public class DownloadView extends VBox {
 		formGrid.add(titleLabel, 0, 0);
 
 		// URL Field
-		urlField = new TextField();
+		urlField = new TextField();		
 		urlField.setPromptText("Inserisci URL del file da scaricare");
+		Label dragHint = new Label("💡 Puoi anche trascinare qui un link per scaricarlo.");
+		dragHint.setStyle("-fx-font-size: 10px; -fx-text-fill: gray;");
 		GridPane.setColumnSpan(urlField, 2);
 		formGrid.add(urlField, 0, 1);
+		formGrid.add(dragHint, 2, 1);
 
 		// Thread Spinner
 		threadSpinner = new Spinner<>(1, 16, 4);
@@ -165,6 +169,28 @@ public class DownloadView extends VBox {
 		bottomSection.getChildren().addAll(totalProgressTitle, progressBar, logTitle, logArea);
 
 		getChildren().addAll(formGrid, threadProgressTitle, threadScrollPane, bottomSection);
+		
+		// Drag & Drop su tutta la finestra
+		setOnDragOver(event -> {
+			if (event.getGestureSource() != this && 
+				event.getDragboard().hasString() &&
+				event.getDragboard().getString().startsWith("http")) {
+				event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
+			}
+			event.consume();
+		});
+		
+		setOnDragDropped(event -> {
+			String dropped = event.getDragboard().getString();
+			if (dropped != null && dropped.startsWith("http")) {
+				urlField.setText(dropped);
+				showMessage("🔗 URL ricevuto tramite drag and drop.");
+				event.setDropCompleted(true);
+			} else {
+				event.setDropCompleted(false);
+			}
+			event.consume();
+		});
 	}
 
 	private void startDownload() {
