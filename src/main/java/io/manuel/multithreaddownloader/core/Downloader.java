@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Base64;
 
 import io.manuel.multithreaddownloader.controller.DownloadControl;
 
@@ -15,18 +16,24 @@ public class Downloader {
 	private final int numThreads;
 	private final ProgressListener listener;
 	private final DownloadControl control;
+	private final String username;
+	private final String password;
 
 	public Downloader(
 			String fileURL, 
 			String outputFile, 
 			int numThreads, 
 			DownloadControl control,
+			String username,
+			String password,
 			ProgressListener listener) {
 		this.fileURL = fileURL;
 		this.outputFile = outputFile;
 		this.numThreads = numThreads;
 		this.listener = listener;
 		this.control = control;
+		this.username = username;
+		this.password = password;
 	}
 
 	public void start() throws IOException {
@@ -36,12 +43,12 @@ public class Downloader {
 			return;
 		}
 
-		System.out.println("📥 Inizio download da: " + fileURL);
-		System.out.println("💾 Salvataggio in: " + outputFile);
-		System.out.println("🧵 Thread utilizzati: " + numThreads);
-
 		URL url = new URL(fileURL);
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		if (username != null && !username.isBlank()) {
+		    String basicAuth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
+		    conn.setRequestProperty("Authorization", "Basic " + basicAuth);
+		}
 		int contentLength = conn.getContentLength();
 		conn.disconnect();
 
@@ -63,7 +70,7 @@ public class Downloader {
 			int start = i * partSize;
 			int end = (i == numThreads - 1) ? contentLength - 1 : start + partSize - 1;
 
-			threads[i] = new Thread(new DownloadTask(fileURL, outputFile, start, end, i, listener, control));
+			threads[i] = new Thread(new DownloadTask(fileURL, outputFile, start, end, i, listener, control, username, password ));
 			threads[i].start();
 		}
 

@@ -23,6 +23,8 @@ public class DownloadManager {
     		File folder, 
     		int threads,
     		DownloadControl control,
+    		String username,
+    		String password,
     		Callback callback) {
         try {
             URL url = new URL(fileURL);
@@ -38,7 +40,7 @@ public class DownloadManager {
             
             double[] lastNotified = new double[threads];
 
-            Downloader downloader = new Downloader(fileURL, output, threads, control, new ProgressListener() {
+            Downloader downloader = new Downloader(fileURL, output, threads, control, username, password, new ProgressListener() {
             	@Override
             	public void onProgress(int threadId, double percent) {
             	    if (Math.abs(percent - lastNotified[threadId]) < 0.01) return; // ignora aggiornamenti < 1%

@@ -5,9 +5,9 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Base64;
 
 import io.manuel.multithreaddownloader.controller.DownloadControl;
-import javafx.application.Platform;
 
 public class DownloadTask implements Runnable {
 
@@ -18,6 +18,8 @@ public class DownloadTask implements Runnable {
     private final int threadId;
     private final ProgressListener listener;
     private final DownloadControl control;
+    private final String username;
+    private final String password;
 
     public DownloadTask(String fileURL, 
     					String outputFile, 
@@ -25,7 +27,9 @@ public class DownloadTask implements Runnable {
     					int endByte, 
     					int threadId,
     					ProgressListener listener,
-    					DownloadControl control) {
+    					DownloadControl control,
+    					String username, 
+    					String password) {
         this.fileURL = fileURL;
         this.outputFile = outputFile;
         this.startByte = startByte;
@@ -33,12 +37,18 @@ public class DownloadTask implements Runnable {
         this.threadId = threadId;
         this.listener = listener;
         this.control = control;
+        this.username = username;
+        this.password = password;
     }
 
     @Override
     public void run() {
         try {
-            HttpURLConnection conn = (HttpURLConnection) new URL(fileURL).openConnection();
+        	HttpURLConnection conn = (HttpURLConnection) new URL(fileURL).openConnection();
+        	if (username != null && !username.isBlank()) {
+        	    String basicAuth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
+        	    conn.setRequestProperty("Authorization", "Basic " + basicAuth);
+        	}
             conn.setRequestProperty("Range", "bytes=" + startByte + "-" + endByte);
             conn.connect();
 
