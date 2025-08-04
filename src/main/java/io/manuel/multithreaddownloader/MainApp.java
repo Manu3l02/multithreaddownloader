@@ -13,7 +13,7 @@ public class MainApp extends Application {
 		
 		DownloadView view = new DownloadView();
 		
-		Scene scene = new Scene(view, 600, 600);
+		Scene scene = new Scene(view, 750, 600);
 		primaryStage.setScene(scene);
 		primaryStage.show();
 	}

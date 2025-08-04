@@ -77,7 +77,6 @@ public class DownloadTask implements Runnable {
 
             raf.close();
             in.close();
-            System.out.println("✅ Thread " + threadId + " completato.");
 
         } catch (IOException e) {
             System.out.println("❌ Thread " + threadId + " errore: " + e.getMessage());

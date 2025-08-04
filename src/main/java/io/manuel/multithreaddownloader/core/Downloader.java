@@ -57,8 +57,6 @@ public class Downloader {
 			return;
 		}
 
-		System.out.println("📦 Dimensione file: " + contentLength + " byte");
-
 		RandomAccessFile file = new RandomAccessFile(outputFile, "rw");
 		file.setLength(contentLength);
 		file.close();
@@ -91,6 +89,5 @@ public class Downloader {
 			return;
 		}
 
-		System.out.println("🎉 Download completato: " + outputFile);
 	}
 }

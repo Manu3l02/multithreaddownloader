@@ -9,7 +9,8 @@ import javafx.scene.control.*;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
-
+import io.manuel.multithreaddownloader.util.FavoritesManager;
+import java.nio.file.Path;
 import java.io.File;
 
 public class DownloadView extends VBox {
@@ -30,6 +31,7 @@ public class DownloadView extends VBox {
 	private Button resumeButton;
 	private Button cancelButton;
 	private DownloadControl control;
+	private FavoritesManager favoritesManager = new FavoritesManager();
 
 	public DownloadView() {
 		initUI();
@@ -81,7 +83,16 @@ public class DownloadView extends VBox {
 		folderLabel = new Label("Nessuna cartella selezionata");
 		folderLabel.setMaxWidth(400);
 		folderLabel.setWrapText(true);
-		HBox folderSelectionBox = new HBox(10, folderButton, folderLabel);
+		
+		MenuButton favoritesMenu = new MenuButton("📂 Percorsi preferiti");
+		updateFavoritesMenu(favoritesMenu);
+		
+		Button removeFavoritesButton = new Button("❌ Rimuovi preferito");
+		
+		HBox folderSelectionBox = new HBox(10, 
+				favoritesMenu, 
+				folderButton, 
+				folderLabel);
 		folderSelectionBox.setAlignment(Pos.CENTER_LEFT);
 		GridPane.setColumnSpan(folderSelectionBox, 2);
 		formGrid.add(folderSelectionBox, 0, 4, 2, 1);
@@ -266,11 +277,15 @@ public class DownloadView extends VBox {
 
 					@Override
 					public void onComplete() {
+						if (selectedFolder != null) {
+							favoritesManager.addFavorite(selectedFolder.toPath());
+						}
+						
 						showMessage("✅ Download completato!");
 						downloadButton.setDisable(false);
 						pauseButton.setDisable(true);
 						resumeButton.setDisable(true);
-						cancelButton.setDisable(true);
+						cancelButton.setDisable(true);						
 					}
 
 					@Override
@@ -325,6 +340,66 @@ public class DownloadView extends VBox {
 		}
 	}
 
+	private void updateFavoritesMenu(MenuButton menu) {
+		menu.getItems().clear();
+
+		for (Path path : favoritesManager.loadFavorites()) {
+			Label pathLabel = new Label(path.toString());
+			Button removeBtn = new Button("❌");
+
+			removeBtn.setOnAction(e -> {
+				if (confirmRemoval(path)) {
+					favoritesManager.removeFavorites(path);
+					updateFavoritesMenu(menu);
+					showMessage("❌ Rimosso: " + path);
+				}
+			});
+
+			HBox itemBox = new HBox(10, pathLabel, removeBtn);
+			itemBox.setAlignment(Pos.CENTER_LEFT);
+			CustomMenuItem customItem = new CustomMenuItem(itemBox, false);
+
+			customItem.setOnAction(e -> {
+				selectedFolder = path.toFile();
+				folderLabel.setText("⭐ " + path.toString());
+			});
+
+			menu.getItems().add(customItem);
+		}
+
+		// ----------- PULSANTE "+" PER AGGIUNGERE UN PERCORSO -------------
+		Button addBtn = new Button("➕ Aggiungi percorso");
+		addBtn.setMaxWidth(Double.MAX_VALUE);
+		addBtn.setOnAction(e -> {
+			DirectoryChooser chooser = new DirectoryChooser();
+			chooser.setTitle("Scegli una cartella da aggiungere ai preferiti");
+			File folder = chooser.showDialog(getScene().getWindow());
+			if (folder != null) {
+				favoritesManager.addFavorite(folder.toPath());
+				updateFavoritesMenu(menu);
+				showMessage("➕ Aggiunto nuovo preferito: " + folder.getAbsolutePath());
+			}
+		});
+
+		CustomMenuItem addItem = new CustomMenuItem(addBtn, false);
+		menu.getItems().add(new SeparatorMenuItem()); // linea separatrice
+		menu.getItems().add(addItem);
+	}
+	
+	private boolean confirmRemoval(Path path) {
+		Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+		alert.setTitle("Conferma Rimozione");
+		alert.setHeaderText("Sei sicuro di voler rimuovere questo percorso dai preferiti?");
+		alert.setContentText(path.toString());
+
+		ButtonType ok = new ButtonType("Conferma");
+		ButtonType cancel = new ButtonType("Annulla", ButtonBar.ButtonData.CANCEL_CLOSE);
+		alert.getButtonTypes().setAll(ok, cancel);
+
+		return alert.showAndWait().orElse(cancel) == ok;
+	}
+
+	
 	private void showMessage(String msg) {
 		logArea.appendText(msg + "\n");
 	}

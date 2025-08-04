@@ -14,6 +14,9 @@ Ogni thread scarica una parte del file in parallelo, migliorando le prestazioni 
 - ⏹️ Possibilità di **annullare** il download in qualsiasi momento (con rimozione del file incompleto)
 - 🧠 Scelta del numero di thread dalla GUI (da 1 a 16)
 - 📂 Selezione della cartella di destinazione
+- ⭐ Salvataggio automatico delle **ultime 3 cartelle usate** come preferite
+- 🧭 Menu a tendina con accesso rapido e rimozione dei **percorsi preferiti**
+- ➕ Aggiunta manuale della cartella corrente ai preferiti
 - 🚫 Evita la sovrascrittura se il file esiste già (aggiunge suffisso)
 - 🖥️ Interfaccia grafica moderna con JavaFX
 - 📄 Log chiaro di ogni evento e progresso
@@ -81,6 +84,7 @@ Oppure da IDE (es. Eclipse/IntelliJ): esegui `MainApp.java`.
 * [x] Selezione cartella di destinazione
 * [x] Pausa / Ripresa del download
 * [x] Annullamento e cancellazione file incompleto
+* [x] Percorsi preferiti recenti (aggiunta/rimozione da menu)
 * [ ] Supporto a HTTPS con autenticazione (token/cookie)
 * [ ] Cronologia dei download effettuati
 * [ ] Supporto a resume da file parziali dopo riavvio
