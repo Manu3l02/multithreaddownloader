@@ -14,6 +14,9 @@ public class MainApp extends Application {
 		DownloadView view = new DownloadView();
 		
 		Scene scene = new Scene(view, 750, 600);
+		scene.getStylesheets().add(
+			    getClass().getResource("/css/dragdrop.css").toExternalForm()
+			);
 		primaryStage.setScene(scene);
 		primaryStage.show();
 	}

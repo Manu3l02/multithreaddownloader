@@ -6,6 +6,8 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
@@ -14,7 +16,7 @@ import java.nio.file.Path;
 import java.io.File;
 
 public class DownloadView extends VBox {
-
+	
 	private TextField urlField;
 	private TextField fileNameField;
 	private Button folderButton;
@@ -32,177 +34,195 @@ public class DownloadView extends VBox {
 	private Button cancelButton;
 	private DownloadControl control;
 	private FavoritesManager favoritesManager = new FavoritesManager();
-
+	private StackPane rootPane;
+	private VBox dragOverlay;
+	
 	public DownloadView() {
 		initUI();
 	}
 
-	private void initUI() {
-		setPadding(new Insets(15));
-		setSpacing(10);
+    private void initUI() {
+        rootPane = new StackPane();
+        VBox mainContent = new VBox();
+        mainContent.setPadding(new Insets(15));
+        mainContent.setSpacing(10);
 
-		GridPane formGrid = new GridPane();
-		formGrid.setHgap(10);
-		formGrid.setVgap(8);
-		formGrid.setPadding(new Insets(5, 10, 5, 10));
-		formGrid.setAlignment(Pos.TOP_LEFT);
+        GridPane formGrid = new GridPane();
+        formGrid.setHgap(10);
+        formGrid.setVgap(8);
+        formGrid.setPadding(new Insets(5, 10, 5, 10));
+        formGrid.setAlignment(Pos.TOP_LEFT);
 
-		// Titolo
-		Label titleLabel = new Label("MultiThread Downloader");
-		titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: darkslategray;");
-		GridPane.setColumnSpan(titleLabel, 2);
-		GridPane.setHalignment(titleLabel, HPos.LEFT);
-		formGrid.add(titleLabel, 0, 0);
+        Label titleLabel = new Label("MultiThread Downloader");
+        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: darkslategray;");
+        GridPane.setColumnSpan(titleLabel, 2);
+        GridPane.setHalignment(titleLabel, HPos.LEFT);
+        formGrid.add(titleLabel, 0, 0);
 
-		// URL Field
-		urlField = new TextField();		
-		urlField.setPromptText("Inserisci URL del file da scaricare");
-		Label dragHint = new Label("💡 Puoi anche trascinare qui un link per scaricarlo.");
-		dragHint.setStyle("-fx-font-size: 10px; -fx-text-fill: gray;");
-		GridPane.setColumnSpan(urlField, 2);
-		formGrid.add(urlField, 0, 1);
-		formGrid.add(dragHint, 2, 1);
+        urlField = new TextField();
+        urlField.setPromptText("Inserisci URL del file da scaricare");
+        Label dragHint = new Label("💡 Puoi anche trascinare qui un link per scaricarlo.");
+        dragHint.setStyle("-fx-font-size: 10px; -fx-text-fill: gray;");
+        GridPane.setColumnSpan(urlField, 2);
+        formGrid.add(urlField, 0, 1);
+        formGrid.add(dragHint, 2, 1);
 
-		// Thread Spinner
-		threadSpinner = new Spinner<>(1, 16, 4);
-		threadSpinner.setEditable(true);
-		HBox threadBox = new HBox(10, new Label("Numero di thread:"), threadSpinner);
-		threadBox.setAlignment(Pos.CENTER_LEFT);
-		GridPane.setColumnSpan(threadBox, 2);
-		formGrid.add(threadBox, 0, 2);
+        threadSpinner = new Spinner<>(1, 16, 4);
+        threadSpinner.setEditable(true);
+        HBox threadBox = new HBox(10, new Label("Numero di thread:"), threadSpinner);
+        threadBox.setAlignment(Pos.CENTER_LEFT);
+        GridPane.setColumnSpan(threadBox, 2);
+        formGrid.add(threadBox, 0, 2);
 
-		// File Name Field
-		fileNameField = new TextField();
-		fileNameField.setPromptText("Nome file (opzionale)");
-		GridPane.setColumnSpan(fileNameField, 2);
-		formGrid.add(fileNameField, 0, 3, 2, 1);
+        fileNameField = new TextField();
+        fileNameField.setPromptText("Nome file (opzionale)");
+        GridPane.setColumnSpan(fileNameField, 2);
+        formGrid.add(fileNameField, 0, 3, 2, 1);
 
-		// Folder Chooser
-		folderButton = new Button("Scegli cartella...");
-		folderButton.setOnAction(e -> chooseFolder());
-		folderLabel = new Label("Nessuna cartella selezionata");
-		folderLabel.setMaxWidth(400);
-		folderLabel.setWrapText(true);
-		
-		MenuButton favoritesMenu = new MenuButton("📂 Percorsi preferiti");
-		updateFavoritesMenu(favoritesMenu);
-		
-		Button removeFavoritesButton = new Button("❌ Rimuovi preferito");
-		
-		HBox folderSelectionBox = new HBox(10, 
-				favoritesMenu, 
-				folderButton, 
-				folderLabel);
-		folderSelectionBox.setAlignment(Pos.CENTER_LEFT);
-		GridPane.setColumnSpan(folderSelectionBox, 2);
-		formGrid.add(folderSelectionBox, 0, 4, 2, 1);
+        folderButton = new Button("Scegli cartella...");
+        folderButton.setOnAction(e -> chooseFolder());
+        folderLabel = new Label("Nessuna cartella selezionata");
+        folderLabel.setMaxWidth(400);
+        folderLabel.setWrapText(true);
 
-		// Control Buttons
-		downloadButton = new Button("Scarica");
-		pauseButton = new Button("⏸️ Pausa");
-		resumeButton = new Button("▶️ Riprendi");
-		cancelButton = new Button("⏹️ Annulla");
+        MenuButton favoritesMenu = new MenuButton("📂 Percorsi preferiti");
+        updateFavoritesMenu(favoritesMenu);
 
-		pauseButton.setDisable(true);
-		resumeButton.setDisable(true);
-		cancelButton.setDisable(true);
+        HBox folderSelectionBox = new HBox(10,
+                favoritesMenu,
+                folderButton,
+                folderLabel);
+        folderSelectionBox.setAlignment(Pos.CENTER_LEFT);
+        GridPane.setColumnSpan(folderSelectionBox, 2);
+        formGrid.add(folderSelectionBox, 0, 4, 2, 1);
 
-		downloadButton.setOnAction(e -> startDownload());
+        downloadButton = new Button("Scarica");
+        pauseButton = new Button("⏸️ Pausa");
+        resumeButton = new Button("▶️ Riprendi");
+        cancelButton = new Button("⏹️ Annulla");
 
-		pauseButton.setOnAction(e -> {
-			if (control != null) {
-				control.pause();
-				showMessage("⏸️ Download in pausa.");
-				pauseButton.setDisable(true);
-				resumeButton.setDisable(false);
-			}
-		});
+        pauseButton.setDisable(true);
+        resumeButton.setDisable(true);
+        cancelButton.setDisable(true);
 
-		resumeButton.setOnAction(e -> {
-			if (control != null) {
-				control.resume();
-				showMessage("▶️ Download ripreso.");
-				pauseButton.setDisable(false);
-				resumeButton.setDisable(true);
-			}
-		});
+        downloadButton.setOnAction(e -> startDownload());
+        pauseButton.setOnAction(e -> {
+            if (control != null) {
+                control.pause();
+                showMessage("⏸️ Download in pausa.");
+                pauseButton.setDisable(true);
+                resumeButton.setDisable(false);
+            }
+        });
+        resumeButton.setOnAction(e -> {
+            if (control != null) {
+                control.resume();
+                showMessage("▶️ Download ripreso.");
+                pauseButton.setDisable(false);
+                resumeButton.setDisable(true);
+            }
+        });
+        cancelButton.setOnAction(e -> {
+            if (control != null) {
+                control.cancel();
+                showMessage("⏹️ Download in fase di annullamento...");
+                pauseButton.setDisable(true);
+                resumeButton.setDisable(true);
+                cancelButton.setDisable(true);
+                downloadButton.setDisable(false);
+            }
+        });
 
-		cancelButton.setOnAction(e -> {
-			if (control != null) {
-				control.cancel();
-				showMessage("⏹️ Download in fase di annullamento...");
-				pauseButton.setDisable(true);
-				resumeButton.setDisable(true);
-				cancelButton.setDisable(true);
-				downloadButton.setDisable(false);
-			}
-		});
+        HBox controlButtons = new HBox(10, downloadButton, pauseButton, resumeButton, cancelButton);
+        GridPane.setColumnSpan(controlButtons, 2);
+        GridPane.setHalignment(controlButtons, HPos.LEFT);
+        formGrid.add(controlButtons, 0, 5, 2, 1);
 
-		HBox controlButtons = new HBox(10, downloadButton, pauseButton, resumeButton, cancelButton);
-		GridPane.setColumnSpan(controlButtons, 2);
-		GridPane.setHalignment(controlButtons, HPos.LEFT);
-		formGrid.add(controlButtons, 0, 5, 2, 1);
+        Label threadProgressTitle = new Label("Progresso per thread:");
+        threadProgressTitle.setStyle("-fx-font-weight: bold;");
+        VBox.setMargin(threadProgressTitle, new Insets(0, 0, 5, 10));
 
-		// -------- Thread Progress --------
-		Label threadProgressTitle = new Label("Progresso per thread:");
-		threadProgressTitle.setStyle("-fx-font-weight: bold;");
-		VBox.setMargin(threadProgressTitle, new Insets(0, 0, 5, 10));
+        threadProgressContainer = new VBox(5);
+        threadProgressContainer.setPadding(new Insets(10));
+        threadProgressContainer.setAlignment(Pos.TOP_LEFT);
 
-		threadProgressContainer = new VBox(5);
-		threadProgressContainer.setPadding(new Insets(10));
-		threadProgressContainer.setAlignment(Pos.TOP_LEFT);
+        threadScrollPane = new ScrollPane(threadProgressContainer);
+        threadScrollPane.setFitToWidth(true);
+        threadScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        threadScrollPane.setPrefHeight(150);
+        VBox.setMargin(threadScrollPane, new Insets(0, 10, 0, 10));
 
-		threadScrollPane = new ScrollPane(threadProgressContainer);
-		threadScrollPane.setFitToWidth(true);
-		threadScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-		threadScrollPane.setPrefHeight(150);
-		VBox.setMargin(threadScrollPane, new Insets(0, 10, 0, 10));
+        VBox bottomSection = new VBox(8);
+        bottomSection.setPadding(new Insets(10));
+        bottomSection.setAlignment(Pos.TOP_LEFT);
+        VBox.setMargin(bottomSection, new Insets(0, 0, 10, 0));
 
-		// -------- Bottom Section --------
-		VBox bottomSection = new VBox(8);
-		bottomSection.setPadding(new Insets(10));
-		bottomSection.setAlignment(Pos.TOP_LEFT);
-		VBox.setMargin(bottomSection, new Insets(0, 0, 10, 0));
+        Label totalProgressTitle = new Label("Progresso totale:");
+        totalProgressTitle.setStyle("-fx-font-weight: bold;");
+        progressBar = new ProgressBar(0);
+        progressBar.setMaxWidth(Double.MAX_VALUE);
 
-		Label totalProgressTitle = new Label("Progresso totale:");
-		totalProgressTitle.setStyle("-fx-font-weight: bold;");
-		progressBar = new ProgressBar(0);
-		progressBar.setMaxWidth(Double.MAX_VALUE);
+        Label logTitle = new Label("Log:");
+        logTitle.setStyle("-fx-font-weight: bold;");
+        logArea = new TextArea();
+        logArea.setEditable(false);
+        logArea.setPrefRowCount(3);
+        logArea.setWrapText(true);
+        VBox.setVgrow(logArea, Priority.ALWAYS);
 
-		Label logTitle = new Label("Log:");
-		logTitle.setStyle("-fx-font-weight: bold;");
-		logArea = new TextArea();
-		logArea.setEditable(false);
-		logArea.setPrefRowCount(3);
-		logArea.setWrapText(true);
-		VBox.setVgrow(logArea, Priority.ALWAYS);
+        bottomSection.getChildren().addAll(totalProgressTitle, progressBar, logTitle, logArea);
 
-		bottomSection.getChildren().addAll(totalProgressTitle, progressBar, logTitle, logArea);
+        mainContent.getChildren().addAll(formGrid, threadProgressTitle, threadScrollPane, bottomSection);
+        rootPane.getChildren().add(mainContent);
 
-		getChildren().addAll(formGrid, threadProgressTitle, threadScrollPane, bottomSection);
-		
-		// Drag & Drop su tutta la finestra
-		setOnDragOver(event -> {
-			if (event.getGestureSource() != this && 
-				event.getDragboard().hasString() &&
-				event.getDragboard().getString().startsWith("http")) {
-				event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
-			}
-			event.consume();
-		});
-		
-		setOnDragDropped(event -> {
-			String dropped = event.getDragboard().getString();
-			if (dropped != null && dropped.startsWith("http")) {
-				urlField.setText(dropped);
-				showMessage("🔗 URL ricevuto tramite drag and drop.");
-				event.setDropCompleted(true);
-			} else {
-				event.setDropCompleted(false);
-			}
-			event.consume();
-		});
-	}
+        dragOverlay = new VBox(10);
+        dragOverlay.getStyleClass().add("drag-overlay");
+        dragOverlay.setVisible(false);
+        dragOverlay.setAlignment(Pos.CENTER);
+
+        ImageView icon = new ImageView(new Image(
+                getClass().getResource("/icons/file_plus.png").toExternalForm(),
+                64, 64, true, true
+        ));
+        Label iconLabel = new Label("", icon);
+        iconLabel.getStyleClass().add("drag-icon");
+
+        Label textLabel = new Label("Inserire file qui");
+        textLabel.getStyleClass().add("drag-text");
+
+        dragOverlay.getChildren().addAll(iconLabel, textLabel);
+        rootPane.getChildren().add(dragOverlay);
+
+        getChildren().add(rootPane);
+
+        rootPane.setOnDragOver(event -> {
+            if (event.getGestureSource() != this &&
+                event.getDragboard().hasString() &&
+                event.getDragboard().getString().startsWith("http")) {
+                dragOverlay.setVisible(true);
+                event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
+            }
+            event.consume();
+        });
+
+        rootPane.setOnDragExited(event -> {
+            dragOverlay.setVisible(false);
+            event.consume();
+        });
+
+        rootPane.setOnDragDropped(event -> {
+            String dropped = event.getDragboard().getString();
+            if (dropped != null && dropped.startsWith("http")) {
+                urlField.setText(dropped);
+                showMessage("🔗 URL ricevuto tramite drag and drop.");
+                event.setDropCompleted(true);
+            } else {
+                event.setDropCompleted(false);
+            }
+            dragOverlay.setVisible(false);
+            event.consume();
+        });
+    }
 
 	private void startDownload() {
 		String fileURL = urlField.getText().trim();
@@ -215,7 +235,6 @@ public class DownloadView extends VBox {
 			return;
 		}
 
-		// Verifica se è richiesta autenticazione
 		try {
 			java.net.URL testURL = new java.net.URL(fileURL);
 			java.net.HttpURLConnection conn = (java.net.HttpURLConnection) testURL.openConnection();
@@ -225,7 +244,6 @@ public class DownloadView extends VBox {
 			conn.disconnect();
 
 			if (code == 401) {
-				// Richiede autenticazione
 				String[] credentials = promptForCredentials();
 				if (credentials == null) {
 					showMessage("🔒 Download annullato: credenziali non fornite.");
@@ -367,7 +385,6 @@ public class DownloadView extends VBox {
 			menu.getItems().add(customItem);
 		}
 
-		// ----------- PULSANTE "+" PER AGGIUNGERE UN PERCORSO -------------
 		Button addBtn = new Button("➕ Aggiungi percorso");
 		addBtn.setMaxWidth(Double.MAX_VALUE);
 		addBtn.setOnAction(e -> {
@@ -382,7 +399,7 @@ public class DownloadView extends VBox {
 		});
 
 		CustomMenuItem addItem = new CustomMenuItem(addBtn, false);
-		menu.getItems().add(new SeparatorMenuItem()); // linea separatrice
+		menu.getItems().add(new SeparatorMenuItem());
 		menu.getItems().add(addItem);
 	}
 	
