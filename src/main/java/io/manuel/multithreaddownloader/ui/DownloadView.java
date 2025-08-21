@@ -14,6 +14,8 @@ import javafx.stage.DirectoryChooser;
 import io.manuel.multithreaddownloader.util.FavoritesManager;
 import java.nio.file.Path;
 import java.io.File;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class DownloadView extends VBox {
 	
@@ -236,14 +238,39 @@ public class DownloadView extends VBox {
 		}
 
 		try {
-			java.net.URL testURL = new java.net.URL(fileURL);
-			java.net.HttpURLConnection conn = (java.net.HttpURLConnection) testURL.openConnection();
-			conn.setRequestMethod("HEAD");
-			conn.connect();
-			int code = conn.getResponseCode();
-			conn.disconnect();
-
-			if (code == 401) {
+			URL testURL = new URL(fileURL);
+			
+			boolean verified = false;
+			int code = -1;
+			
+			// 1. Tentativo: HEAD
+			try {
+				HttpURLConnection conn = (HttpURLConnection) testURL.openConnection();
+				conn.setRequestMethod("HEAD");
+				conn.connect();
+				code = conn.getResponseCode();
+				conn.disconnect();
+				verified = true;
+			} catch (Exception e) {
+				showMessage("⚠️ HEAD non supportato sal server, provo con GET...");
+			}
+				
+			// 2. Fallback: Get
+			if (!verified) {
+				try {
+					HttpURLConnection conn = (HttpURLConnection) testURL.openConnection();
+					conn.setRequestProperty("Range", "bytes=0-0");
+					conn.connect();
+					code = conn.getResponseCode();
+					conn.disconnect();
+					verified = true;
+				} catch (Exception e) {
+					showMessage("⚠️ GET (Range) non supportato, procedo comunque al download...");
+				}
+			}
+			
+			// Se ricevo codice HTTP
+			if (verified && code == 401) {
 				String[] credentials = promptForCredentials();
 				if (credentials == null) {
 					showMessage("🔒 Download annullato: credenziali non fornite.");
