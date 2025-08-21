@@ -28,6 +28,7 @@ Ogni thread scarica una parte del file in parallelo, migliorando le prestazioni 
 
 ### Home
 Qui un’immagine della schermata principale (nonché unica schermata) del programma.
+
 <img src="docs/screenshots/home.png" alt="Screenshot Home" width="700">
 
 ### Demo drag & drop, pausa e ripresa
@@ -41,6 +42,14 @@ Il range supportato va da **1 a 16 thread**.
 ⚠️ Più thread non significa automaticamente maggiore efficienza.
 
 <img src="docs/gif/GifDownloadManager.gif" alt="Demo GIF" width="750">
+
+### Demo autenticazione HTTP
+
+Questa GIF mostra come l'app gestisce un download che richiede **autenticazione HTTP Basic**.  
+Il link di test usato è: `https://httpbin.org/basic-auth/user/passwd`.
+
+<img src="docs/gif/GifAuthDownload.gif" alt="Demo Auth GIF" width="750">
+
 
 ---
 
