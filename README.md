@@ -24,6 +24,26 @@ Ogni thread scarica una parte del file in parallelo, migliorando le prestazioni 
 
 ---
 
+## 🖼️ Anteprima interfaccia
+
+### Home
+Qui un’immagine della schermata principale (nonché unica schermata) del programma.
+<img src="docs/screenshots/home.png" alt="Screenshot Home" width="700">
+
+### Demo drag & drop, pausa e ripresa
+In questa GIF mostro come è possibile:
+- trascinare un file all’interno dell’app (drag & drop);
+- selezionare il percorso di destinazione;
+- avviare, mettere in pausa e riprendere il download.
+
+Il numero di thread predefinito è **4**, ma può essere modificato usando le freccette oppure sostituendo manualmente il valore.  
+Il range supportato va da **1 a 16 thread**.  
+⚠️ Più thread non significa automaticamente maggiore efficienza.
+
+<img src="docs/gif/GifDownloadManager.gif" alt="Demo GIF" width="750">
+
+---
+
 ## 🛠️ Tecnologie utilizzate
 
 - **Java 17**
